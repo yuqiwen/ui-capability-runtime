@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+.env
+playwright-report/
+test-results/
+runtime/
+tmp/
+*.log
+/Assignment A*.pdf

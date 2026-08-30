@@ -1,0 +1,37 @@
+{
+  "name": "ui-capability-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Discover reusable UI capabilities with an LLM, then replay them deterministically without a model in the loop.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit && vitest run",
+    "dev:target": "tsx src/target/server.ts",
+    "target": "tsx src/cli.ts target",
+    "discover": "tsx src/cli.ts discover",
+    "replay": "tsx src/cli.ts replay",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "cli": "tsx src/cli.ts",
+    "verify:submission": "tsx scripts/verify-submission.ts"
+  },
+  "dependencies": {
+    "commander": "^14.0.0",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "openai": "^5.20.0",
+    "playwright": "^1.55.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}
