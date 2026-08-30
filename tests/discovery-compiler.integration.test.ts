@@ -53,10 +53,10 @@ class ScriptedDiscoveryModel implements DiscoveryModel {
       name: "Prepare internal transfer",
       description: "Prepare a member transfer and stop before irreversible submission.",
       inputs: [
-        { name: "member-id", description: "Member number", type: "string", sampleValue: "M-10042", enumValues: [], sensitive: true },
+        { name: "member-id", description: "Member number", type: "string", sampleValue: "M-10042", enumValues: [], sensitive: false },
         { name: "from-account", description: "Source account type", type: "enum", sampleValue: "checking", enumValues: ["checking", "savings"], sensitive: false },
         { name: "to-account", description: "Destination account type", type: "enum", sampleValue: "savings", enumValues: ["checking", "savings"], sensitive: false },
-        { name: "amount", description: "Transfer amount", type: "money", sampleValue: 125.5, enumValues: [], sensitive: true },
+        { name: "amount", description: "Transfer amount", type: "money", sampleValue: 125.5, enumValues: [], sensitive: false },
       ],
       steps: [
         { traceIndex: 0, description: "Enter the member number", checkpointText: null },
@@ -111,13 +111,16 @@ describe("goal-only discovery and capability compilation", () => {
     const capability = await new CapabilityCompiler(model).compile(discovery, profile);
     expect(capability.status).toBe("draft");
     expect(capability.contract.inputs.map((input) => input.name)).toEqual(["member-id", "from-account", "to-account", "amount"]);
+    expect(capability.contract.inputs.find((input) => input.name === "member-id")?.sensitive).toBe(true);
+    expect(capability.contract.inputs.find((input) => input.name === "amount")?.sensitive).toBe(true);
     const serialized = JSON.stringify(capability);
     expect(serialized).not.toContain("M-10042");
     expect(serialized).not.toContain("125.50");
+    expect(serialized).not.toContain("125.5");
     expect(serialized).toContain('"kind":"input","name":"member-id"');
     expect(serialized).toContain('"kind":"input","name":"amount"');
     expect(capability.discovery.goal).toContain("{{member-id}}");
     expect(capability.successCheckpoint.length).toBeGreaterThanOrEqual(2);
+    expect(capability.discovery.evidenceLog).toBe("evidence/runs/test-discovery-compiler/run.jsonl");
   }, 30_000);
 });
-

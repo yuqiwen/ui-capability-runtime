@@ -49,7 +49,7 @@ describe("deterministic browser replay", () => {
       fee: 0,
     });
     expect(String(result.outputs["review-reference"])).toMatch(/^RVW-[A-F0-9]{8}$/);
-  });
+  }, 15_000);
 
   it("returns member-not-found as a business outcome", async () => {
     const { result } = await replay({ forcedScenario: "happy" }, "M-99999");

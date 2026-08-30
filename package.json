@@ -14,6 +14,7 @@
     "target": "tsx src/cli.ts target",
     "discover": "tsx src/cli.ts discover",
     "replay": "tsx src/cli.ts replay",
+    "demo:handoff": "tsx scripts/demo-handoff.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "cli": "tsx src/cli.ts",

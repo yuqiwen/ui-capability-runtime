@@ -41,6 +41,7 @@ export class FileEvidenceSink implements EvidenceSink {
   private redact<T>(value: T): T {
     const serialized = JSON.stringify(value)
       .replace(/M-[0-9]{5}/gi, "[REDACTED_MEMBER]")
+      .replace(/\$[0-9][0-9,]*(?:\.[0-9]{2})?/g, "[REDACTED_AMOUNT]")
       .replace(/\bsk-[a-zA-Z0-9_-]{12,}\b/g, "[REDACTED_API_KEY]")
       .replace(/\b(?:member-?id|amount)\s*[=:]\s*[^,;\s]+/gi, (match) => `${match.split(/[=:]/, 1)[0]}=[REDACTED]`);
     return JSON.parse(serialized) as T;

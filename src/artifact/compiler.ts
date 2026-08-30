@@ -38,18 +38,21 @@ export class CapabilityCompiler {
     });
     this.validateProposalCoverage(proposal, discovery);
 
-    const inputs = proposal.inputs.map((input) => ({
-      name: input.name,
-      description: input.description,
-      required: true,
-      sensitive: input.sensitive,
-      schema: profile.inputSchemaOverrides?.[input.name] ?? this.inputSchema(input),
-      provenance: {
-        source: this.goalContains(discovery.goal, input.sampleValue) ? "goal_span" as const : "compiler_inference" as const,
-        sampleValueRedacted: input.sensitive ? this.redactSample(input.sampleValue) : String(input.sampleValue),
-        confidence: this.goalContains(discovery.goal, input.sampleValue) ? 0.99 : 0.8,
-      },
-    }));
+    const inputs = proposal.inputs.map((input) => {
+      const sensitive = this.isSensitiveInput(input);
+      return {
+        name: input.name,
+        description: input.description,
+        required: true,
+        sensitive,
+        schema: profile.inputSchemaOverrides?.[input.name] ?? this.inputSchema(input),
+        provenance: {
+          source: this.goalContains(discovery.goal, input.sampleValue) ? "goal_span" as const : "compiler_inference" as const,
+          sampleValueRedacted: sensitive ? this.redactSample(input.sampleValue, input.type) : String(input.sampleValue),
+          confidence: this.goalContains(discovery.goal, input.sampleValue) ? 0.99 : 0.8,
+        },
+      };
+    });
 
     const proposedStepByIndex = new Map(proposal.steps.map((step) => [step.traceIndex, step]));
     const executableSteps = discovery.trace.map((recorded) => {
@@ -76,12 +79,13 @@ export class CapabilityCompiler {
       const element = discovery.finalObservation.elements.find((candidate) => candidate.elementId === output.elementId);
       if (!element) throw new Error(`output ${output.name} references missing final element ${output.elementId}`);
       const extractionTarget = structuredClone(element.target);
-      extractionTarget.description = output.description;
+      const description = this.outputDescription(output.name);
+      extractionTarget.description = description;
       extractionTarget.candidates = extractionTarget.candidates.filter((candidate) => candidate.strategy === "css" || candidate.strategy === "label");
       if (!extractionTarget.candidates.length) throw new Error(`output ${output.name} has no value-independent extraction locator`);
       return {
         name: output.name,
-        description: output.description,
+        description,
         schema: output.type === "money" ? { type: "money" as const, currency: "USD" } : { type: "string" as const },
         extract: { target: extractionTarget, attribute: "text" as const, transform: output.type === "money" ? "money" as const : "trim" as const },
       };
@@ -129,7 +133,7 @@ export class CapabilityCompiler {
       discovery: {
         goal: this.parameterizedGoal(discovery.goal, proposal),
         runId: discovery.runId,
-        evidenceLog: `evidence/${discovery.runId}.jsonl`,
+        evidenceLog: `evidence/runs/${discovery.runId}/run.jsonl`,
         compiler: `${this.model.providerName}:capability-compiler-v1`,
       },
     });
@@ -178,10 +182,22 @@ export class CapabilityCompiler {
     return normalizedGoal.includes(normalizedValue);
   }
 
-  private redactSample(value: JsonPrimitive): string {
+  private isSensitiveInput(input: CompilationProposal["inputs"][number]): boolean {
+    if (input.sensitive || input.type === "money") return true;
+    return /(?:member|customer|client|user)[-_ ]*(?:id|number|identifier)|account[-_ ]*(?:id|number)|routing|ssn|social security|password|passcode|token|secret/i
+      .test(`${input.name} ${input.description}`);
+  }
+
+  private redactSample(value: JsonPrimitive, type: CompilationProposal["inputs"][number]["type"]): string {
+    if (type === "money") return "$***.**";
     const text = String(value);
     if (text.length <= 2) return "**";
     return `${text[0]}${"*".repeat(Math.min(text.length - 2, 6))}${text.at(-1)}`;
+  }
+
+  private outputDescription(name: string): string {
+    const words = name.split("-").join(" ");
+    return `${words[0]!.toUpperCase()}${words.slice(1)} captured from the review page`;
   }
 
   private parameterizedGoal(goal: string, proposal: CompilationProposal): string {

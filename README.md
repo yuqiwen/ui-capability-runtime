@@ -80,7 +80,7 @@ The fictional operations console is then available at `http://127.0.0.1:4310/ops
 
 ### 3. Run genuine LLM discovery
 
-Put `OPENAI_API_KEY` and an image-capable structured-output `OPENAI_MODEL` in the untracked `.env` file. Then run in terminal two:
+Put `OPENAI_API_KEY` and an image-capable structured-output `OPENAI_MODEL` in the untracked `.env` file. The example uses `gpt-5.6-luna`, the lowest-cost model that completed this workflow reliably during development. Then run in terminal two:
 
 ```bash
 npm run discover -- \
@@ -99,7 +99,7 @@ Keep the happy target running and invoke the saved capability with different inp
 ```bash
 npm run replay -- \
   --artifact evidence/prepare-internal-transfer.v1.json \
-  --args '{"member-id":"M-20081","from-account":"checking","to-account":"savings","amount":75}'
+  --args '{"member-number":"M-20081","from-account":"checking","to-account":"savings","transfer-amount":75}'
 ```
 
 The replay command never constructs an LLM client. A successful result contains the typed extracted outputs and evidence references.
@@ -109,7 +109,7 @@ The replay command never constructs an LLM client. A successful result contains 
 ```bash
 npm run replay -- \
   --artifact evidence/prepare-internal-transfer.v1.json \
-  --args '{"member-id":"M-99999","from-account":"checking","to-account":"savings","amount":75}'
+  --args '{"member-number":"M-99999","from-account":"checking","to-account":"savings","transfer-amount":75}'
 ```
 
 Expected result: `business_outcome` with code `MEMBER_NOT_FOUND`, not a thrown automation error.
@@ -137,11 +137,13 @@ Then run replay in headed handoff mode:
 ```bash
 npm run replay -- \
   --artifact evidence/prepare-internal-transfer.v1.json \
-  --args '{"member-id":"M-30077","from-account":"checking","to-account":"savings","amount":80}' \
+  --args '{"member-number":"M-30077","from-account":"checking","to-account":"savings","transfer-amount":80}' \
   --handoff
 ```
 
 Open the printed operator URL, take control, click `Apply Supervisor Override` in the already-open target browser, and request resume. The coordinator records redacted human events, verifies the declared resume checkpoint, returns the controller lease to automation, and the original replay finishes.
+
+For CI and evidence regeneration, `npm run demo:handoff -- evidence/prepare-internal-transfer.v1.json` exercises the identical controller-lease and same-`BrowserContext` path with a scripted operator callback. It is explicitly a simulation; the command above is the human-operated path.
 
 ### Validate an artifact without running it
 

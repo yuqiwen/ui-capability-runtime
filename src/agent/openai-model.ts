@@ -1,57 +1,75 @@
 import OpenAI from "openai";
 import type { ResponseFormatTextJSONSchemaConfig } from "openai/resources/responses/responses";
+import { z } from "zod";
 import { compilationProposalSchema, discoveryDecisionSchema, type CompilationContext, type CompilationProposal, type DecisionContext, type DiscoveryDecision, type DiscoveryModel } from "./model.js";
 
-const decisionJsonSchema: ResponseFormatTextJSONSchemaConfig = {
+const decisionEnvelopeSchema = z.object({
+  status: z.enum(["act", "complete", "stuck"]),
+  summary: z.string().nullable(),
+  actionType: z.enum(["click", "type", "select", "wait"]).nullable(),
+  elementId: z.string().nullable(),
+  value: z.string().nullable(),
+  outputs: z.array(z.object({
+    name: z.string(),
+    description: z.string(),
+    type: z.enum(["string", "money"]),
+    elementId: z.string(),
+  })),
+  reason: z.string().nullable(),
+});
+
+export function parseDiscoveryDecisionEnvelope(value: unknown): DiscoveryDecision {
+  const envelope = decisionEnvelopeSchema.parse(value);
+  switch (envelope.status) {
+    case "act":
+      return discoveryDecisionSchema.parse({
+        status: envelope.status,
+        summary: envelope.summary,
+        actionType: envelope.actionType,
+        elementId: envelope.elementId,
+        value: envelope.value,
+      });
+    case "complete":
+      return discoveryDecisionSchema.parse({
+        status: envelope.status,
+        summary: envelope.summary,
+        outputs: envelope.outputs,
+      });
+    case "stuck":
+      return discoveryDecisionSchema.parse({ status: envelope.status, reason: envelope.reason });
+  }
+}
+
+export const decisionJsonSchema: ResponseFormatTextJSONSchemaConfig = {
   type: "json_schema",
   name: "computer_use_decision",
   strict: true,
   schema: {
     type: "object",
-    oneOf: [
-      {
-        type: "object",
-        additionalProperties: false,
-        required: ["status", "summary", "actionType", "elementId", "value"],
-        properties: {
-          status: { const: "act" },
-          summary: { type: "string" },
-          actionType: { enum: ["click", "type", "select", "wait"] },
-          elementId: { type: ["string", "null"] },
-          value: { type: ["string", "null"] },
-        },
-      },
-      {
-        type: "object",
-        additionalProperties: false,
-        required: ["status", "summary", "outputs"],
-        properties: {
-          status: { const: "complete" },
-          summary: { type: "string" },
-          outputs: {
-            type: "array",
-            minItems: 1,
-            items: {
-              type: "object",
-              additionalProperties: false,
-              required: ["name", "description", "type", "elementId"],
-              properties: {
-                name: { type: "string" },
-                description: { type: "string" },
-                type: { enum: ["string", "money"] },
-                elementId: { type: "string" },
-              },
-            },
+    additionalProperties: false,
+    required: ["status", "summary", "actionType", "elementId", "value", "outputs", "reason"],
+    properties: {
+      status: { enum: ["act", "complete", "stuck"] },
+      summary: { type: ["string", "null"], minLength: 1, maxLength: 240 },
+      actionType: { enum: ["click", "type", "select", "wait", null] },
+      elementId: { type: ["string", "null"] },
+      value: { type: ["string", "null"] },
+      outputs: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["name", "description", "type", "elementId"],
+          properties: {
+            name: { type: "string", pattern: "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$" },
+            description: { type: "string", minLength: 1 },
+            type: { enum: ["string", "money"] },
+            elementId: { type: "string", minLength: 1 },
           },
         },
       },
-      {
-        type: "object",
-        additionalProperties: false,
-        required: ["status", "reason"],
-        properties: { status: { const: "stuck" }, reason: { type: "string" } },
-      },
-    ],
+      reason: { type: ["string", "null"], minLength: 1, maxLength: 500 },
+    },
   },
 };
 
@@ -64,9 +82,9 @@ const compilationJsonSchema: ResponseFormatTextJSONSchemaConfig = {
     additionalProperties: false,
     required: ["id", "name", "description", "inputs", "steps"],
     properties: {
-      id: { type: "string" },
-      name: { type: "string" },
-      description: { type: "string" },
+      id: { type: "string", pattern: "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$" },
+      name: { type: "string", minLength: 1 },
+      description: { type: "string", minLength: 1 },
       inputs: {
         type: "array",
         minItems: 1,
@@ -75,8 +93,8 @@ const compilationJsonSchema: ResponseFormatTextJSONSchemaConfig = {
           additionalProperties: false,
           required: ["name", "description", "type", "sampleValue", "enumValues", "sensitive"],
           properties: {
-            name: { type: "string" },
-            description: { type: "string" },
+            name: { type: "string", pattern: "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$" },
+            description: { type: "string", minLength: 1 },
             type: { enum: ["string", "number", "money", "enum", "boolean"] },
             sampleValue: { type: ["string", "number", "boolean"] },
             enumValues: { type: "array", items: { type: "string" } },
@@ -92,7 +110,7 @@ const compilationJsonSchema: ResponseFormatTextJSONSchemaConfig = {
           required: ["traceIndex", "description", "checkpointText"],
           properties: {
             traceIndex: { type: "integer", minimum: 0 },
-            description: { type: "string" },
+            description: { type: "string", minLength: 1 },
             checkpointText: { type: ["string", "null"] },
           },
         },
@@ -144,7 +162,7 @@ export class OpenAIDiscoveryModel implements DiscoveryModel {
       ] }],
       text: { format: decisionJsonSchema },
     });
-    return discoveryDecisionSchema.parse(JSON.parse(response.output_text));
+    return parseDiscoveryDecisionEnvelope(JSON.parse(response.output_text));
   }
 
   async proposeCompilation(context: CompilationContext): Promise<CompilationProposal> {
@@ -158,4 +176,3 @@ export class OpenAIDiscoveryModel implements DiscoveryModel {
     return compilationProposalSchema.parse(JSON.parse(response.output_text));
   }
 }
-

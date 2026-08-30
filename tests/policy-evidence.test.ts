@@ -45,16 +45,17 @@ describe("file evidence redaction", () => {
       timestamp: "2026-08-30T01:00:00.000Z",
       runId: "redaction-test",
       type: "model_decision",
-      data: { summary: "Search M-10042 with sk-example1234567890" },
+      data: { summary: "Search M-10042 for $125.50 with sk-example1234567890" },
     });
     const logReference = sink.references().find((reference) => reference.kind === "log");
     expect(logReference).toBeDefined();
     const logPath = join(temporaryRoot, "runs", "redaction-test", "run.jsonl");
     const content = await readFile(logPath, "utf8");
     expect(content).not.toContain("M-10042");
+    expect(content).not.toContain("$125.50");
     expect(content).not.toContain("sk-example1234567890");
     expect(content).toContain("[REDACTED_MEMBER]");
+    expect(content).toContain("[REDACTED_AMOUNT]");
     expect(content).toContain("[REDACTED_API_KEY]");
   });
 });
-

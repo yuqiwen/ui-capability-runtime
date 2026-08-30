@@ -1,0 +1,816 @@
+{
+  "schemaVersion": "1.0",
+  "id": "prepare-internal-transfer",
+  "name": "Prepare Internal Transfer",
+  "description": "Prepare an internal transfer between a member's deposit accounts and stop at the transfer review page without submitting it.",
+  "revision": 1,
+  "status": "draft",
+  "createdAt": "2026-08-30T02:42:47.326Z",
+  "target": {
+    "applicationFamily": "northstar-ops",
+    "entryPoint": "http://127.0.0.1:4310/ops",
+    "allowedOrigins": [
+      "http://127.0.0.1:4310"
+    ],
+    "fingerprint": {
+      "titlePattern": "Northstar Credit Union Operations",
+      "requiredText": [
+        "Member Services"
+      ]
+    },
+    "tenantProfiles": []
+  },
+  "contract": {
+    "inputs": [
+      {
+        "name": "member-number",
+        "description": "Member number identifying the member relationship.",
+        "required": true,
+        "sensitive": true,
+        "schema": {
+          "type": "string"
+        },
+        "provenance": {
+          "source": "goal_span",
+          "sampleValueRedacted": "M*****2",
+          "confidence": 0.99
+        }
+      },
+      {
+        "name": "from-account",
+        "description": "Source deposit account for the transfer.",
+        "required": true,
+        "sensitive": false,
+        "schema": {
+          "type": "enum",
+          "values": [
+            "checking",
+            "savings"
+          ]
+        },
+        "provenance": {
+          "source": "goal_span",
+          "sampleValueRedacted": "checking",
+          "confidence": 0.99
+        }
+      },
+      {
+        "name": "to-account",
+        "description": "Destination deposit account for the transfer.",
+        "required": true,
+        "sensitive": false,
+        "schema": {
+          "type": "enum",
+          "values": [
+            "checking",
+            "savings"
+          ]
+        },
+        "provenance": {
+          "source": "goal_span",
+          "sampleValueRedacted": "savings",
+          "confidence": 0.99
+        }
+      },
+      {
+        "name": "transfer-amount",
+        "description": "Amount to transfer.",
+        "required": true,
+        "sensitive": true,
+        "schema": {
+          "type": "money",
+          "currency": "USD",
+          "minimum": 0.01
+        },
+        "provenance": {
+          "source": "goal_span",
+          "sampleValueRedacted": "$***.**",
+          "confidence": 0.99
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "name": "member",
+        "description": "Member captured from the review page",
+        "schema": {
+          "type": "string"
+        },
+        "extract": {
+          "target": {
+            "description": "Member captured from the review page",
+            "candidates": [
+              {
+                "framePath": [
+                  {
+                    "name": "member-workspace"
+                  }
+                ],
+                "exact": true,
+                "strategy": "css",
+                "selector": "span.review-member"
+              }
+            ],
+            "requireUnique": true
+          },
+          "attribute": "text",
+          "transform": "trim"
+        }
+      },
+      {
+        "name": "from-account",
+        "description": "From account captured from the review page",
+        "schema": {
+          "type": "string"
+        },
+        "extract": {
+          "target": {
+            "description": "From account captured from the review page",
+            "candidates": [
+              {
+                "framePath": [
+                  {
+                    "name": "member-workspace"
+                  }
+                ],
+                "exact": true,
+                "strategy": "css",
+                "selector": "span.review-from"
+              }
+            ],
+            "requireUnique": true
+          },
+          "attribute": "text",
+          "transform": "trim"
+        }
+      },
+      {
+        "name": "to-account",
+        "description": "To account captured from the review page",
+        "schema": {
+          "type": "string"
+        },
+        "extract": {
+          "target": {
+            "description": "To account captured from the review page",
+            "candidates": [
+              {
+                "framePath": [
+                  {
+                    "name": "member-workspace"
+                  }
+                ],
+                "exact": true,
+                "strategy": "css",
+                "selector": "span.review-to"
+              }
+            ],
+            "requireUnique": true
+          },
+          "attribute": "text",
+          "transform": "trim"
+        }
+      },
+      {
+        "name": "transfer-amount",
+        "description": "Transfer amount captured from the review page",
+        "schema": {
+          "type": "money",
+          "currency": "USD"
+        },
+        "extract": {
+          "target": {
+            "description": "Transfer amount captured from the review page",
+            "candidates": [
+              {
+                "framePath": [
+                  {
+                    "name": "member-workspace"
+                  }
+                ],
+                "exact": true,
+                "strategy": "css",
+                "selector": "span.review-amount"
+              }
+            ],
+            "requireUnique": true
+          },
+          "attribute": "text",
+          "transform": "money"
+        }
+      },
+      {
+        "name": "fee",
+        "description": "Fee captured from the review page",
+        "schema": {
+          "type": "money",
+          "currency": "USD"
+        },
+        "extract": {
+          "target": {
+            "description": "Fee captured from the review page",
+            "candidates": [
+              {
+                "framePath": [
+                  {
+                    "name": "member-workspace"
+                  }
+                ],
+                "exact": true,
+                "strategy": "css",
+                "selector": "span.review-fee"
+              }
+            ],
+            "requireUnique": true
+          },
+          "attribute": "text",
+          "transform": "money"
+        }
+      },
+      {
+        "name": "review-reference",
+        "description": "Review reference captured from the review page",
+        "schema": {
+          "type": "string"
+        },
+        "extract": {
+          "target": {
+            "description": "Review reference captured from the review page",
+            "candidates": [
+              {
+                "framePath": [
+                  {
+                    "name": "member-workspace"
+                  }
+                ],
+                "exact": true,
+                "strategy": "css",
+                "selector": "span.review-reference"
+              }
+            ],
+            "requireUnique": true
+          },
+          "attribute": "text",
+          "transform": "trim"
+        }
+      }
+    ],
+    "businessOutcomes": [
+      {
+        "code": "MEMBER_NOT_FOUND",
+        "description": "The supplied member number does not exist.",
+        "when": [
+          {
+            "type": "page_contains",
+            "value": {
+              "kind": "literal",
+              "value": "No matching member."
+            }
+          }
+        ]
+      },
+      {
+        "code": "VALIDATION_REJECTED",
+        "description": "The target application rejected the transfer fields.",
+        "when": [
+          {
+            "type": "page_contains",
+            "value": {
+              "kind": "literal",
+              "value": "Validation error."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "runtimeHandlers": {
+    "recoveries": [
+      {
+        "code": "TRANSIENT_VALIDATION_DELAY",
+        "description": "Retry the known validation service interstitial once.",
+        "when": [
+          {
+            "type": "page_contains",
+            "value": {
+              "kind": "literal",
+              "value": "Temporary service delay."
+            }
+          }
+        ],
+        "actions": [
+          {
+            "type": "click",
+            "target": {
+              "description": "Retry Validation link",
+              "candidates": [
+                {
+                  "framePath": [
+                    {
+                      "name": "member-workspace"
+                    }
+                  ],
+                  "exact": true,
+                  "strategy": "role",
+                  "role": "link",
+                  "name": "Retry Validation"
+                }
+              ],
+              "requireUnique": true
+            }
+          }
+        ],
+        "postconditions": [
+          {
+            "type": "page_contains",
+            "value": {
+              "kind": "literal",
+              "value": "Transfer Review"
+            }
+          }
+        ],
+        "maxAttempts": 1
+      }
+    ],
+    "interventions": [
+      {
+        "code": "SUPERVISOR_PERMISSION_REQUIRED",
+        "reason": "The target application requires a supervisor to continue in the live session.",
+        "when": [
+          {
+            "type": "page_contains",
+            "value": {
+              "kind": "literal",
+              "value": "Supervisor permission required."
+            }
+          }
+        ],
+        "resumeCheckpoint": [
+          {
+            "type": "page_contains",
+            "value": {
+              "kind": "literal",
+              "value": "Transfer Review"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "policy": {
+    "allowedActionTypes": [
+      "navigate",
+      "click",
+      "type",
+      "select",
+      "wait"
+    ],
+    "maximumAutomatedRisk": "sensitive",
+    "allowedRoutePatterns": [
+      "^/ops(?:/|$)"
+    ]
+  },
+  "steps": [
+    {
+      "id": "open-application",
+      "description": "Open the approved target entry point",
+      "action": {
+        "type": "navigate",
+        "url": {
+          "kind": "literal",
+          "value": "http://127.0.0.1:4310/ops"
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "timeoutMs": 15000,
+      "retry": {
+        "maxAttempts": 2,
+        "backoffMs": 250,
+        "retryOn": [
+          "timeout",
+          "transient_navigation"
+        ]
+      },
+      "risk": "safe"
+    },
+    {
+      "id": "step-01",
+      "description": "Enter the member number in the Member Number field.",
+      "action": {
+        "type": "type",
+        "target": {
+          "description": "Member Number",
+          "candidates": [
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "label",
+              "label": "Member Number"
+            },
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "role",
+              "role": "textbox",
+              "name": "Member Number"
+            },
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "css",
+              "selector": "input[name=\"memberNumber\"]"
+            }
+          ],
+          "requireUnique": true
+        },
+        "value": {
+          "kind": "input",
+          "name": "member-number"
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "timeoutMs": 10000,
+      "retry": {
+        "maxAttempts": 1,
+        "backoffMs": 100,
+        "retryOn": []
+      },
+      "risk": "sensitive"
+    },
+    {
+      "id": "step-02",
+      "description": "Search for the member.",
+      "action": {
+        "type": "click",
+        "target": {
+          "description": "Search",
+          "candidates": [
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "role",
+              "role": "button",
+              "name": "Search"
+            },
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "css",
+              "selector": "button.primary"
+            }
+          ],
+          "requireUnique": true
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "timeoutMs": 10000,
+      "retry": {
+        "maxAttempts": 1,
+        "backoffMs": 100,
+        "retryOn": []
+      },
+      "risk": "safe"
+    },
+    {
+      "id": "step-03",
+      "description": "Open Prepare Internal Transfer.",
+      "action": {
+        "type": "click",
+        "target": {
+          "description": "Prepare Internal Transfer",
+          "candidates": [
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "role",
+              "role": "link",
+              "name": "Prepare Internal Transfer"
+            },
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "css",
+              "selector": "a.button.primary"
+            }
+          ],
+          "requireUnique": true
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "timeoutMs": 10000,
+      "retry": {
+        "maxAttempts": 1,
+        "backoffMs": 100,
+        "retryOn": []
+      },
+      "risk": "safe"
+    },
+    {
+      "id": "step-04",
+      "description": "Select the source account.",
+      "action": {
+        "type": "select",
+        "target": {
+          "description": "From account",
+          "candidates": [
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "label",
+              "label": "From account"
+            },
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "role",
+              "role": "combobox",
+              "name": "From account"
+            },
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "css",
+              "selector": "select[name=\"fromAccount\"]"
+            }
+          ],
+          "requireUnique": true
+        },
+        "value": {
+          "kind": "input",
+          "name": "from-account"
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "timeoutMs": 10000,
+      "retry": {
+        "maxAttempts": 1,
+        "backoffMs": 100,
+        "retryOn": []
+      },
+      "risk": "sensitive"
+    },
+    {
+      "id": "step-05",
+      "description": "Select the destination account.",
+      "action": {
+        "type": "select",
+        "target": {
+          "description": "To account",
+          "candidates": [
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "label",
+              "label": "To account"
+            },
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "role",
+              "role": "combobox",
+              "name": "To account"
+            },
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "css",
+              "selector": "select[name=\"toAccount\"]"
+            }
+          ],
+          "requireUnique": true
+        },
+        "value": {
+          "kind": "input",
+          "name": "to-account"
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "timeoutMs": 10000,
+      "retry": {
+        "maxAttempts": 1,
+        "backoffMs": 100,
+        "retryOn": []
+      },
+      "risk": "sensitive"
+    },
+    {
+      "id": "step-06",
+      "description": "Enter the transfer amount.",
+      "action": {
+        "type": "type",
+        "target": {
+          "description": "Transfer amount",
+          "candidates": [
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "label",
+              "label": "Transfer amount"
+            },
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "role",
+              "role": "textbox",
+              "name": "Transfer amount"
+            },
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "css",
+              "selector": "input[name=\"amount\"]"
+            }
+          ],
+          "requireUnique": true
+        },
+        "value": {
+          "kind": "input",
+          "name": "transfer-amount"
+        }
+      },
+      "preconditions": [],
+      "postconditions": [],
+      "timeoutMs": 10000,
+      "retry": {
+        "maxAttempts": 1,
+        "backoffMs": 100,
+        "retryOn": []
+      },
+      "risk": "sensitive"
+    },
+    {
+      "id": "step-07",
+      "description": "Continue to the transfer review page and stop without submitting.",
+      "action": {
+        "type": "click",
+        "target": {
+          "description": "Continue",
+          "candidates": [
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "role",
+              "role": "button",
+              "name": "Continue"
+            },
+            {
+              "framePath": [
+                {
+                  "name": "member-workspace"
+                }
+              ],
+              "exact": true,
+              "strategy": "css",
+              "selector": "button.primary"
+            }
+          ],
+          "requireUnique": true
+        }
+      },
+      "preconditions": [],
+      "postconditions": [
+        {
+          "type": "page_contains",
+          "value": {
+            "kind": "literal",
+            "value": "Transfer Review"
+          }
+        }
+      ],
+      "timeoutMs": 10000,
+      "retry": {
+        "maxAttempts": 1,
+        "backoffMs": 100,
+        "retryOn": []
+      },
+      "risk": "safe"
+    }
+  ],
+  "successCheckpoint": [
+    {
+      "type": "page_contains",
+      "value": {
+        "kind": "literal",
+        "value": "Transfer Review"
+      }
+    },
+    {
+      "type": "visible",
+      "target": {
+        "description": "Member captured from the review page",
+        "candidates": [
+          {
+            "framePath": [
+              {
+                "name": "member-workspace"
+              }
+            ],
+            "exact": true,
+            "strategy": "css",
+            "selector": "span.review-member"
+          }
+        ],
+        "requireUnique": true
+      }
+    },
+    {
+      "type": "visible",
+      "target": {
+        "description": "From account captured from the review page",
+        "candidates": [
+          {
+            "framePath": [
+              {
+                "name": "member-workspace"
+              }
+            ],
+            "exact": true,
+            "strategy": "css",
+            "selector": "span.review-from"
+          }
+        ],
+        "requireUnique": true
+      }
+    }
+  ],
+  "discovery": {
+    "goal": "Prepare a {{transfer-amount}} internal transfer for member {{member-number}} from {{from-account}} to {{to-account}} and stop at the review page.",
+    "runId": "discovery-bac6c753-a5e0-4df7-a508-9bbd7b2bd10c",
+    "evidenceLog": "evidence/runs/discovery-bac6c753-a5e0-4df7-a508-9bbd7b2bd10c/run.jsonl",
+    "compiler": "openai-responses:gpt-5.6-luna:capability-compiler-v1"
+  }
+}

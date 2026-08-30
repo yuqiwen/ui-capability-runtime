@@ -1,0 +1,18 @@
+{"timestamp":"2026-08-30T02:43:07.634Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"run_started","data":{"capabilityId":"prepare-internal-transfer","revision":1}}
+{"timestamp":"2026-08-30T02:43:07.636Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"step_started","stepId":"open-application","data":{"description":"Open the approved target entry point"}}
+{"timestamp":"2026-08-30T02:43:07.778Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"action_completed","stepId":"open-application","data":{"actionType":"navigate","attempt":1}}
+{"timestamp":"2026-08-30T02:43:08.030Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"step_started","stepId":"step-01","data":{"description":"Enter the member number in the Member Number field."}}
+{"timestamp":"2026-08-30T02:43:08.097Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"action_completed","stepId":"step-01","data":{"actionType":"type","attempt":1}}
+{"timestamp":"2026-08-30T02:43:08.296Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"step_started","stepId":"step-02","data":{"description":"Search for the member."}}
+{"timestamp":"2026-08-30T02:43:08.386Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"action_completed","stepId":"step-02","data":{"actionType":"click","attempt":1}}
+{"timestamp":"2026-08-30T02:43:08.545Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"step_started","stepId":"step-03","data":{"description":"Open Prepare Internal Transfer."}}
+{"timestamp":"2026-08-30T02:43:08.636Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"action_completed","stepId":"step-03","data":{"actionType":"click","attempt":1}}
+{"timestamp":"2026-08-30T02:43:08.827Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"step_started","stepId":"step-04","data":{"description":"Select the source account."}}
+{"timestamp":"2026-08-30T02:43:08.872Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"action_completed","stepId":"step-04","data":{"actionType":"select","attempt":1}}
+{"timestamp":"2026-08-30T02:43:09.046Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"step_started","stepId":"step-05","data":{"description":"Select the destination account."}}
+{"timestamp":"2026-08-30T02:43:09.104Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"action_completed","stepId":"step-05","data":{"actionType":"select","attempt":1}}
+{"timestamp":"2026-08-30T02:43:09.263Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"step_started","stepId":"step-06","data":{"description":"Enter the transfer amount."}}
+{"timestamp":"2026-08-30T02:43:09.325Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"action_completed","stepId":"step-06","data":{"actionType":"type","attempt":1}}
+{"timestamp":"2026-08-30T02:43:09.464Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"step_started","stepId":"step-07","data":{"description":"Continue to the transfer review page and stop without submitting."}}
+{"timestamp":"2026-08-30T02:43:09.547Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"action_completed","stepId":"step-07","data":{"actionType":"click","attempt":1}}
+{"timestamp":"2026-08-30T02:43:09.836Z","runId":"replay-5fbcf654-cf65-4839-b2a5-107594461c6e","type":"run_completed","data":{"status":"success"}}
