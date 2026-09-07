@@ -1,4 +1,4 @@
-import type { CompilationProfile } from "./compiler.js";
+import type { CompilationProfile } from "../artifact/compiler.js";
 
 const framePath = [{ name: "member-workspace" }];
 
@@ -12,10 +12,17 @@ export function createNorthstarProfile(entryPoint: string): CompilationProfile {
     allowedRoutePatterns: ["^/ops(?:/|$)"],
     allowedActionTypes: ["navigate", "click", "type", "select", "wait"],
     maximumAutomatedRisk: "sensitive",
+    blockedTargetTextPatterns: ["Submit Transfer", "Delete", "Close Account"],
     inputSchemaOverrides: {
       "member-id": { type: "string", pattern: "^M-[0-9]{5}$" },
       amount: { type: "money", currency: "USD", minimum: 0.01 },
     },
+    inputCanonicalizations: [
+      { canonicalName: "member-id", namePattern: /^(?:member|customer|client)[-_]?(?:id|number|identifier)$/i },
+      { canonicalName: "from-account", namePattern: /^(?:from|source|debit)[-_]?account$/i },
+      { canonicalName: "to-account", namePattern: /^(?:to|target|destination|credit)[-_]?account$/i },
+      { canonicalName: "amount", namePattern: /^(?:transfer[-_]?)?amount$/i },
+    ],
     businessOutcomes: [
       { code: "MEMBER_NOT_FOUND", description: "The supplied member number does not exist.", when: [{ type: "page_contains", value: { kind: "literal", value: "No matching member." } }] },
       { code: "VALIDATION_REJECTED", description: "The target application rejected the transfer fields.", when: [{ type: "page_contains", value: { kind: "literal", value: "Validation error." } }] },
@@ -49,4 +56,3 @@ export function createNorthstarProfile(entryPoint: string): CompilationProfile {
     },
   };
 }
-

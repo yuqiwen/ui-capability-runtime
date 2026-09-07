@@ -3,10 +3,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { DiscoveryAgent } from "../src/agent/discovery-agent.js";
 import type { CompilationContext, CompilationProposal, DecisionContext, DiscoveryDecision, DiscoveryModel } from "../src/agent/model.js";
 import { CapabilityCompiler } from "../src/artifact/compiler.js";
-import { createNorthstarProfile } from "../src/artifact/northstar-profile.js";
+import { createNorthstarProfile } from "../src/profiles/northstar.js";
 import type { RuntimePolicy } from "../src/contracts/policy.js";
 import { BrowserSurface } from "../src/surface/browser-surface.js";
-import { createTargetApp } from "../src/target/app.js";
+import { createTargetApp } from "../demo/targets/northstar/app.js";
 
 class ScriptedDiscoveryModel implements DiscoveryModel {
   readonly providerName = "scripted-integration-model";
@@ -53,10 +53,10 @@ class ScriptedDiscoveryModel implements DiscoveryModel {
       name: "Prepare internal transfer",
       description: "Prepare a member transfer and stop before irreversible submission.",
       inputs: [
-        { name: "member-id", description: "Member number", type: "string", sampleValue: "M-10042", enumValues: [], sensitive: false },
+        { name: "member-number", description: "Member number", type: "string", sampleValue: "M-10042", enumValues: [], sensitive: false },
         { name: "from-account", description: "Source account type", type: "enum", sampleValue: "checking", enumValues: ["checking", "savings"], sensitive: false },
         { name: "to-account", description: "Destination account type", type: "enum", sampleValue: "savings", enumValues: ["checking", "savings"], sensitive: false },
-        { name: "amount", description: "Transfer amount", type: "money", sampleValue: 125.5, enumValues: [], sensitive: false },
+        { name: "transfer-amount", description: "Transfer amount", type: "money", sampleValue: 125.5, enumValues: [], sensitive: false },
       ],
       steps: [
         { traceIndex: 0, description: "Enter the member number", checkpointText: null },
@@ -112,6 +112,7 @@ describe("goal-only discovery and capability compilation", () => {
     expect(capability.status).toBe("draft");
     expect(capability.contract.inputs.map((input) => input.name)).toEqual(["member-id", "from-account", "to-account", "amount"]);
     expect(capability.contract.inputs.find((input) => input.name === "member-id")?.sensitive).toBe(true);
+    expect(capability.contract.inputs.find((input) => input.name === "member-id")?.schema).toMatchObject({ type: "string", pattern: "^M-[0-9]{5}$" });
     expect(capability.contract.inputs.find((input) => input.name === "amount")?.sensitive).toBe(true);
     const serialized = JSON.stringify(capability);
     expect(serialized).not.toContain("M-10042");

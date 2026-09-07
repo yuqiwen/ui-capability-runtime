@@ -3,6 +3,7 @@ import { capabilitySchema, type Capability } from "../contracts/capability.js";
 import type { JsonPrimitive } from "../contracts/common.js";
 import type { CompilationProposal, DiscoveryModel } from "../agent/model.js";
 import type { SuccessfulDiscovery } from "../agent/discovery-agent.js";
+import { classifyActionRisk } from "../policy/policy-engine.js";
 
 export interface CompilationProfile {
   applicationFamily: string;
@@ -12,16 +13,21 @@ export interface CompilationProfile {
   allowedRoutePatterns: string[];
   allowedActionTypes: Capability["policy"]["allowedActionTypes"];
   maximumAutomatedRisk: Capability["policy"]["maximumAutomatedRisk"];
+  blockedTargetTextPatterns: string[];
   businessOutcomes: Capability["contract"]["businessOutcomes"];
   runtimeHandlers: Capability["runtimeHandlers"];
   inputSchemaOverrides?: Record<string, Capability["contract"]["inputs"][number]["schema"]>;
+  inputCanonicalizations?: Array<{
+    canonicalName: string;
+    namePattern: RegExp;
+  }>;
 }
 
 export class CapabilityCompiler {
   constructor(private readonly model: DiscoveryModel) {}
 
   async compile(discovery: SuccessfulDiscovery, profile: CompilationProfile): Promise<Capability> {
-    const proposal = await this.model.proposeCompilation({
+    const rawProposal = await this.model.proposeCompilation({
       goal: discovery.goal,
       trace: discovery.trace.map((step) => {
         const targetDescription = this.targetDescription(step.action);
@@ -36,6 +42,7 @@ export class CapabilityCompiler {
         };
       }),
     });
+    const proposal = this.canonicalizeProposal(rawProposal, profile);
     this.validateProposalCoverage(proposal, discovery);
 
     const inputs = proposal.inputs.map((input) => {
@@ -71,7 +78,7 @@ export class CapabilityCompiler {
         postconditions,
         timeoutMs: 10_000,
         retry: { maxAttempts: action.type === "navigate" ? 2 : 1, backoffMs: 100, retryOn: action.type === "navigate" ? ["timeout" as const, "transient_navigation" as const] : [] },
-        risk: this.riskFor(action),
+        risk: classifyActionRisk(action, profile.blockedTargetTextPatterns),
       };
     });
 
@@ -115,6 +122,7 @@ export class CapabilityCompiler {
         allowedActionTypes: profile.allowedActionTypes,
         maximumAutomatedRisk: profile.maximumAutomatedRisk,
         allowedRoutePatterns: profile.allowedRoutePatterns,
+        blockedTargetTextPatterns: profile.blockedTargetTextPatterns,
       },
       steps: [
         {
@@ -137,6 +145,17 @@ export class CapabilityCompiler {
         compiler: `${this.model.providerName}:capability-compiler-v1`,
       },
     });
+  }
+
+  private canonicalizeProposal(proposal: CompilationProposal, profile: CompilationProfile): CompilationProposal {
+    const inputs = proposal.inputs.map((input) => {
+      const rule = profile.inputCanonicalizations?.find((candidate) => candidate.namePattern.test(input.name));
+      return rule ? { ...input, name: rule.canonicalName } : input;
+    });
+    const names = inputs.map((input) => input.name);
+    const duplicate = names.find((name, index) => names.indexOf(name) !== index);
+    if (duplicate) throw new Error(`compiler inputs collapse to duplicate canonical name ${duplicate}`);
+    return { ...proposal, inputs };
   }
 
   private validateProposalCoverage(proposal: CompilationProposal, discovery: SuccessfulDiscovery): void {
@@ -197,7 +216,7 @@ export class CapabilityCompiler {
 
   private outputDescription(name: string): string {
     const words = name.split("-").join(" ");
-    return `${words[0]!.toUpperCase()}${words.slice(1)} captured from the review page`;
+    return `${words[0]!.toUpperCase()}${words.slice(1)} captured at the learned success checkpoint`;
   }
 
   private parameterizedGoal(goal: string, proposal: CompilationProposal): string {
@@ -223,9 +242,4 @@ export class CapabilityCompiler {
     return "value" in action && action.value.kind === "literal" ? action.value.value : undefined;
   }
 
-  private riskFor(action: Action): "safe" | "sensitive" | "irreversible" {
-    if ("target" in action && /submit transfer|delete|close account/i.test(action.target.description)) return "irreversible";
-    if (action.type === "type" || action.type === "select") return "sensitive";
-    return "safe";
-  }
 }

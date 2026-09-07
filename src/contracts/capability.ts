@@ -96,6 +96,7 @@ export const capabilitySchema = z
       allowedActionTypes: z.array(z.enum(["navigate", "click", "type", "select", "wait"])).min(1),
       maximumAutomatedRisk: z.enum(["safe", "sensitive"]),
       allowedRoutePatterns: z.array(z.string().min(1)).min(1),
+      blockedTargetTextPatterns: z.array(z.string().min(1)).default([]),
     }),
     steps: z.array(capabilityStepSchema).min(1),
     successCheckpoint: z.array(conditionSchema).min(1),

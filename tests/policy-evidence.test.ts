@@ -54,7 +54,7 @@ describe("file evidence redaction", () => {
     expect(content).not.toContain("M-10042");
     expect(content).not.toContain("$125.50");
     expect(content).not.toContain("sk-example1234567890");
-    expect(content).toContain("[REDACTED_MEMBER]");
+    expect(content).toContain("[REDACTED_IDENTIFIER]");
     expect(content).toContain("[REDACTED_AMOUNT]");
     expect(content).toContain("[REDACTED_API_KEY]");
   });

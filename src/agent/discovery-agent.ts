@@ -3,11 +3,12 @@ import type { Action } from "../contracts/action.js";
 import type { JsonPrimitive } from "../contracts/common.js";
 import type { EvidenceSink } from "../evidence/events.js";
 import { MemoryEvidenceSink } from "../evidence/events.js";
-import { PolicyEngine } from "../policy/policy-engine.js";
+import { classifyActionRisk, PolicyEngine } from "../policy/policy-engine.js";
 import type { Surface, Observation } from "../surface/surface.js";
 import type { RuntimePolicy } from "../contracts/policy.js";
 import type { DiscoveryDecision, DiscoveryModel } from "./model.js";
 import type { HandoffCoordinator } from "../handoff/coordinator.js";
+import { redactSensitiveText } from "../evidence/redaction.js";
 
 export interface RecordedDiscoveryStep {
   index: number;
@@ -42,6 +43,7 @@ export interface DiscoveryOptions {
   runId?: string;
   evidence?: EvidenceSink;
   handoff?: HandoffCoordinator;
+  onProgress?: (message: string) => void;
 }
 
 export class DiscoveryAgent {
@@ -58,6 +60,7 @@ export class DiscoveryAgent {
     const initialDecision = policy.evaluate(initialAction, "safe", targetUrl);
     if (!initialDecision.allowed) return { status: "stopped", runId, reason: `${initialDecision.code}: ${initialDecision.reason}`, trace };
     await this.surface.perform(initialAction, {}, 15_000);
+    options.onProgress?.("Opened approved target");
 
     for (let stepNumber = 0; stepNumber < maxSteps; stepNumber += 1) {
       const observation = await this.surface.observe();
@@ -67,18 +70,20 @@ export class DiscoveryAgent {
         stepNumber,
         priorActions: trace.map((step) => ({ actionType: step.action.type, summary: step.summary, resultUrl: step.after.url })),
       });
+      options.onProgress?.(`AI decision ${stepNumber + 1}: ${decision.status === "stuck" ? decision.reason : decision.summary}`);
       await evidence.append({ timestamp: new Date().toISOString(), runId, type: "model_decision", data: { status: decision.status, summary: decision.status === "stuck" ? decision.reason : decision.summary } });
       if (decision.status === "stuck") {
         await evidence.captureScreenshot(`discovery-stuck-${runId}`, observation.screenshot);
         if (!options.handoff) return { status: "stopped", runId, reason: decision.reason, trace };
-        const origin = new URL(observation.url).origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const observedUrl = new URL(observation.url);
+        const resumeUrl = `${observedUrl.origin}${observedUrl.pathname}`.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         const resolution = await options.handoff.requestAndWait({
           runId,
           capabilityId: "discovery-session",
-          goal: this.redactGoal(goal),
+          goal: redactSensitiveText(goal),
           reason: decision.reason,
           evidence: evidence.references(),
-          resumeCheckpoint: [{ type: "url_matches", pattern: `^${origin}/ops` }],
+          resumeCheckpoint: [{ type: "url_matches", pattern: `^${resumeUrl}(?:[?#].*)?$` }],
           inputs: {},
           surface: this.surface,
         });
@@ -94,10 +99,11 @@ export class DiscoveryAgent {
         }
         await evidence.captureScreenshot(`discovery-complete-${runId}`, observation.screenshot);
         await evidence.append({ timestamp: new Date().toISOString(), runId, type: "run_completed", data: { status: "success", mode: "discovery", actionCount: trace.length } });
+        options.onProgress?.("Success checkpoint reached; compiling capability");
         return { status: "success", runId, goal, target: targetUrl, trace, completion: decision, finalObservation: observation, modelProvider: this.model.providerName };
       }
       const action = this.toAction(decision, observation);
-      const risk = this.riskFor(action);
+      const risk = classifyActionRisk(action, this.runtimePolicy.blockedTargetTextPatterns);
       const policyDecision = policy.evaluate(action, risk, observation.url);
       if (!policyDecision.allowed) return { status: "stopped", runId, reason: `${policyDecision.code}: ${policyDecision.reason}`, trace };
       await this.surface.perform(action, {}, 15_000);
@@ -120,13 +126,4 @@ export class DiscoveryAgent {
     return decision.actionType === "type" ? { type: "type", target: element.target, value } : { type: "select", target: element.target, value };
   }
 
-  private riskFor(action: Action): "safe" | "sensitive" | "irreversible" {
-    if ("target" in action && /submit transfer|delete|close account/i.test(action.target.description)) return "irreversible";
-    if (action.type === "type" || action.type === "select") return "sensitive";
-    return "safe";
-  }
-
-  private redactGoal(goal: string): string {
-    return goal.replace(/M-[0-9]{5}/gi, "[REDACTED_MEMBER]").replace(/\$[0-9][0-9,]*(?:\.[0-9]{2})?/g, "[REDACTED_AMOUNT]");
-  }
 }

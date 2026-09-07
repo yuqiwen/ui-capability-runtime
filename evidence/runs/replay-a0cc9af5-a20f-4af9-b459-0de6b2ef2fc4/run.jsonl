@@ -1,8 +1,0 @@
-{"timestamp":"2026-08-30T02:43:29.374Z","runId":"replay-a0cc9af5-a20f-4af9-b459-0de6b2ef2fc4","type":"run_started","data":{"capabilityId":"prepare-internal-transfer","revision":1}}
-{"timestamp":"2026-08-30T02:43:29.377Z","runId":"replay-a0cc9af5-a20f-4af9-b459-0de6b2ef2fc4","type":"step_started","stepId":"open-application","data":{"description":"Open the approved target entry point"}}
-{"timestamp":"2026-08-30T02:43:29.504Z","runId":"replay-a0cc9af5-a20f-4af9-b459-0de6b2ef2fc4","type":"action_completed","stepId":"open-application","data":{"actionType":"navigate","attempt":1}}
-{"timestamp":"2026-08-30T02:43:29.729Z","runId":"replay-a0cc9af5-a20f-4af9-b459-0de6b2ef2fc4","type":"step_started","stepId":"step-01","data":{"description":"Enter the member number in the Member Number field."}}
-{"timestamp":"2026-08-30T02:43:29.803Z","runId":"replay-a0cc9af5-a20f-4af9-b459-0de6b2ef2fc4","type":"action_completed","stepId":"step-01","data":{"actionType":"type","attempt":1}}
-{"timestamp":"2026-08-30T02:43:29.978Z","runId":"replay-a0cc9af5-a20f-4af9-b459-0de6b2ef2fc4","type":"step_started","stepId":"step-02","data":{"description":"Search for the member."}}
-{"timestamp":"2026-08-30T02:43:30.051Z","runId":"replay-a0cc9af5-a20f-4af9-b459-0de6b2ef2fc4","type":"action_completed","stepId":"step-02","data":{"actionType":"click","attempt":1}}
-{"timestamp":"2026-08-30T02:43:30.111Z","runId":"replay-a0cc9af5-a20f-4af9-b459-0de6b2ef2fc4","type":"run_completed","stepId":"step-02","data":{"status":"business_outcome","code":"MEMBER_NOT_FOUND"}}

@@ -1,6 +1,6 @@
 import type { Server } from "node:http";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createTargetApp } from "../src/target/app.js";
+import { createTargetApp } from "../demo/targets/northstar/app.js";
 
 let server: Server;
 let origin: string;
@@ -65,4 +65,3 @@ describe("fictional legacy target", () => {
     expect(html).toContain("Apply Supervisor Override");
   });
 });
-

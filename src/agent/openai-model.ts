@@ -150,7 +150,7 @@ export class OpenAIDiscoveryModel implements DiscoveryModel {
       `RECENT ACTIONS: ${JSON.stringify(context.priorActions.slice(-6))}`,
       `VISIBLE TEXT:\n${context.observation.visibleText.slice(0, 16_000)}`,
       `ELEMENT INVENTORY:\n${JSON.stringify(elementInventory)}`,
-      "Choose exactly one safe UI action. Use an elementId from the inventory for click/type/select. For wait, elementId and value must be null. For click, value must be null. Mark complete only when the requested review state is visibly reached; identify output elements by elementId. If no safe progress is possible, mark stuck. Provide only a short action summary, not private chain-of-thought.",
+      "Choose exactly one safe UI action. Use an elementId from the inventory for click/type/select. For wait, elementId and value must be null. For click, value must be null. Mark complete only when the goal's requested success or stopping state is visibly reached; identify output elements by elementId. If no safe progress is possible, mark stuck. Provide only a short action summary, not private chain-of-thought.",
     ].join("\n\n");
     const response = await this.client.responses.create({
       model: this.model,
@@ -169,7 +169,7 @@ export class OpenAIDiscoveryModel implements DiscoveryModel {
     const response = await this.client.responses.create({
       model: this.model,
       store: false,
-      instructions: "Compile a successful computer-use trace into a parameterized capability proposal. Infer invocation inputs from concrete goal values, but do not treat the final review checkpoint as an input. Checkpoint text must be a short exact phrase present in that step's afterText, or null. Return only the requested structured proposal.",
+      instructions: "Compile a successful computer-use trace into a parameterized capability proposal. Infer invocation inputs from concrete goal values, but do not treat the final success checkpoint as an input. Checkpoint text must be a short exact phrase present in that step's afterText, or null. Return only the requested structured proposal.",
       input: `GOAL:\n${context.goal}\n\nSUCCESSFUL TRACE:\n${JSON.stringify(context.trace)}`,
       text: { format: compilationJsonSchema },
     });

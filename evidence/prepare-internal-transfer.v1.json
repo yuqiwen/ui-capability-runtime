@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.0",
-  "id": "prepare-internal-transfer",
-  "name": "Prepare Internal Transfer",
-  "description": "Prepare an internal transfer between a member's deposit accounts and stop at the transfer review page without submitting it.",
+  "id": "prepare-internal-transfer-to-review",
+  "name": "Prepare Internal Transfer to Review",
+  "description": "Locate a member, configure an internal transfer between deposit accounts, enter the transfer amount, and stop at the transfer review page without submitting it.",
   "revision": 1,
   "status": "draft",
-  "createdAt": "2026-08-30T02:42:47.326Z",
+  "createdAt": "2026-09-07T02:41:42.135Z",
   "target": {
     "applicationFamily": "northstar-ops",
     "entryPoint": "http://127.0.0.1:4310/ops",
@@ -23,12 +23,13 @@
   "contract": {
     "inputs": [
       {
-        "name": "member-number",
-        "description": "Member number identifying the member relationship.",
+        "name": "member-id",
+        "description": "Member number for the transfer.",
         "required": true,
         "sensitive": true,
         "schema": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^M-[0-9]{5}$"
         },
         "provenance": {
           "source": "goal_span",
@@ -38,7 +39,7 @@
       },
       {
         "name": "from-account",
-        "description": "Source deposit account for the transfer.",
+        "description": "Account to debit.",
         "required": true,
         "sensitive": false,
         "schema": {
@@ -56,7 +57,7 @@
       },
       {
         "name": "to-account",
-        "description": "Destination deposit account for the transfer.",
+        "description": "Account to credit.",
         "required": true,
         "sensitive": false,
         "schema": {
@@ -73,7 +74,7 @@
         }
       },
       {
-        "name": "transfer-amount",
+        "name": "amount",
         "description": "Amount to transfer.",
         "required": true,
         "sensitive": true,
@@ -92,13 +93,13 @@
     "outputs": [
       {
         "name": "member",
-        "description": "Member captured from the review page",
+        "description": "Member captured at the learned success checkpoint",
         "schema": {
           "type": "string"
         },
         "extract": {
           "target": {
-            "description": "Member captured from the review page",
+            "description": "Member captured at the learned success checkpoint",
             "candidates": [
               {
                 "framePath": [
@@ -119,13 +120,13 @@
       },
       {
         "name": "from-account",
-        "description": "From account captured from the review page",
+        "description": "From account captured at the learned success checkpoint",
         "schema": {
           "type": "string"
         },
         "extract": {
           "target": {
-            "description": "From account captured from the review page",
+            "description": "From account captured at the learned success checkpoint",
             "candidates": [
               {
                 "framePath": [
@@ -146,13 +147,13 @@
       },
       {
         "name": "to-account",
-        "description": "To account captured from the review page",
+        "description": "To account captured at the learned success checkpoint",
         "schema": {
           "type": "string"
         },
         "extract": {
           "target": {
-            "description": "To account captured from the review page",
+            "description": "To account captured at the learned success checkpoint",
             "candidates": [
               {
                 "framePath": [
@@ -173,14 +174,14 @@
       },
       {
         "name": "transfer-amount",
-        "description": "Transfer amount captured from the review page",
+        "description": "Transfer amount captured at the learned success checkpoint",
         "schema": {
           "type": "money",
           "currency": "USD"
         },
         "extract": {
           "target": {
-            "description": "Transfer amount captured from the review page",
+            "description": "Transfer amount captured at the learned success checkpoint",
             "candidates": [
               {
                 "framePath": [
@@ -200,42 +201,14 @@
         }
       },
       {
-        "name": "fee",
-        "description": "Fee captured from the review page",
-        "schema": {
-          "type": "money",
-          "currency": "USD"
-        },
-        "extract": {
-          "target": {
-            "description": "Fee captured from the review page",
-            "candidates": [
-              {
-                "framePath": [
-                  {
-                    "name": "member-workspace"
-                  }
-                ],
-                "exact": true,
-                "strategy": "css",
-                "selector": "span.review-fee"
-              }
-            ],
-            "requireUnique": true
-          },
-          "attribute": "text",
-          "transform": "money"
-        }
-      },
-      {
         "name": "review-reference",
-        "description": "Review reference captured from the review page",
+        "description": "Review reference captured at the learned success checkpoint",
         "schema": {
           "type": "string"
         },
         "extract": {
           "target": {
-            "description": "Review reference captured from the review page",
+            "description": "Review reference captured at the learned success checkpoint",
             "candidates": [
               {
                 "framePath": [
@@ -368,6 +341,11 @@
     "maximumAutomatedRisk": "sensitive",
     "allowedRoutePatterns": [
       "^/ops(?:/|$)"
+    ],
+    "blockedTargetTextPatterns": [
+      "Submit Transfer",
+      "Delete",
+      "Close Account"
     ]
   },
   "steps": [
@@ -396,7 +374,7 @@
     },
     {
       "id": "step-01",
-      "description": "Enter the member number in the Member Number field.",
+      "description": "Enter the member number.",
       "action": {
         "type": "type",
         "target": {
@@ -438,7 +416,7 @@
         },
         "value": {
           "kind": "input",
-          "name": "member-number"
+          "name": "member-id"
         }
       },
       "preconditions": [],
@@ -485,7 +463,15 @@
         }
       },
       "preconditions": [],
-      "postconditions": [],
+      "postconditions": [
+        {
+          "type": "page_contains",
+          "value": {
+            "kind": "literal",
+            "value": "Member Relationship"
+          }
+        }
+      ],
       "timeoutMs": 10000,
       "retry": {
         "maxAttempts": 1,
@@ -496,7 +482,7 @@
     },
     {
       "id": "step-03",
-      "description": "Open Prepare Internal Transfer.",
+      "description": "Open the internal transfer preparation form.",
       "action": {
         "type": "click",
         "target": {
@@ -528,7 +514,15 @@
         }
       },
       "preconditions": [],
-      "postconditions": [],
+      "postconditions": [
+        {
+          "type": "page_contains",
+          "value": {
+            "kind": "literal",
+            "value": "Internal Transfer Entry"
+          }
+        }
+      ],
       "timeoutMs": 10000,
       "retry": {
         "maxAttempts": 1,
@@ -695,7 +689,7 @@
         },
         "value": {
           "kind": "input",
-          "name": "transfer-amount"
+          "name": "amount"
         }
       },
       "preconditions": [],
@@ -771,7 +765,7 @@
     {
       "type": "visible",
       "target": {
-        "description": "Member captured from the review page",
+        "description": "Member captured at the learned success checkpoint",
         "candidates": [
           {
             "framePath": [
@@ -790,7 +784,7 @@
     {
       "type": "visible",
       "target": {
-        "description": "From account captured from the review page",
+        "description": "From account captured at the learned success checkpoint",
         "candidates": [
           {
             "framePath": [
@@ -808,9 +802,9 @@
     }
   ],
   "discovery": {
-    "goal": "Prepare a {{transfer-amount}} internal transfer for member {{member-number}} from {{from-account}} to {{to-account}} and stop at the review page.",
-    "runId": "discovery-bac6c753-a5e0-4df7-a508-9bbd7b2bd10c",
-    "evidenceLog": "evidence/runs/discovery-bac6c753-a5e0-4df7-a508-9bbd7b2bd10c/run.jsonl",
+    "goal": "Prepare a {{amount}} internal transfer for member {{member-id}} from {{from-account}} to {{to-account}} and stop at the review page.",
+    "runId": "discovery-a26d5116-1e4e-48de-9430-11f6428c60ac",
+    "evidenceLog": "evidence/runs/discovery-a26d5116-1e4e-48de-9430-11f6428c60ac/run.jsonl",
     "compiler": "openai-responses:gpt-5.6-luna:capability-compiler-v1"
   }
 }

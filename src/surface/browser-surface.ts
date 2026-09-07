@@ -22,7 +22,14 @@ export class BrowserSurface implements Surface {
   ) {}
 
   static async launch(options: BrowserSurfaceOptions = {}): Promise<BrowserSurface> {
-    const browser = await chromium.launch({ headless: options.headless ?? true, slowMo: options.slowMoMs ?? 0 });
+    const launchOptions = { headless: options.headless ?? true, slowMo: options.slowMoMs ?? 0 };
+    let browser: Browser;
+    try {
+      browser = await chromium.launch(launchOptions);
+    } catch (error) {
+      if (process.platform !== "win32") throw error;
+      browser = await chromium.launch({ ...launchOptions, channel: "msedge" });
+    }
     const context = await browser.newContext({ viewport: options.viewport ?? { width: 1280, height: 800 } });
     const page = await context.newPage();
     const surface = new BrowserSurface(browser, context, page);
@@ -170,12 +177,11 @@ export class BrowserSurface implements Surface {
   }
 
   private currentApplicationUrl(): string {
-    const child = this.page.frames().find((frame) => frame !== this.page.mainFrame() && frame.name() === "member-workspace");
-    return child?.url() ?? this.page.url();
+    return this.page.url();
   }
 
   private async inventoryFrame(frame: Frame, frameIndex: number): Promise<InteractiveElement[]> {
-    const raw = await frame.locator("a,button,input,select,textarea,[role],span[class^=review-]").evaluateAll((nodes) =>
+    const raw = await frame.locator("a,button,input,select,textarea,output,[data-output],[role],span[class]").evaluateAll((nodes) =>
       nodes.map((node, index) => {
         const element = node as HTMLElement;
         const input = element as HTMLInputElement;
@@ -204,8 +210,8 @@ export class BrowserSurface implements Surface {
         };
       }),
     ).catch(() => []);
+    const framePath = this.framePathFor(frame);
     return raw.map((element) => {
-      const framePath = frame.name() ? [{ name: frame.name() }] : [];
       const candidates: LocatorCandidate[] = [];
       if (element.label) candidates.push({ strategy: "label", label: element.label, framePath, exact: true });
       if (element.role && element.name) candidates.push({ strategy: "role", role: element.role, name: element.name, framePath, exact: true });
@@ -230,6 +236,24 @@ export class BrowserSurface implements Surface {
         target: { description: element.name || `${element.tag} element`, candidates, requireUnique: true },
       };
     });
+  }
+
+  private framePathFor(frame: Frame): LocatorCandidate["framePath"] {
+    const path: LocatorCandidate["framePath"] = [];
+    let current: Frame | null = frame;
+    while (current && current !== this.page.mainFrame()) {
+      const parent = current.parentFrame();
+      if (!parent) break;
+      const name = current.name();
+      if (name) path.unshift({ name });
+      else {
+        const index = parent.childFrames().indexOf(current);
+        if (index < 0) throw new SurfaceFailure("surface_error", "could not locate frame within its parent");
+        path.unshift({ index });
+      }
+      current = parent;
+    }
+    return path;
   }
 
   private scopeFor(candidate: LocatorCandidate): LocatorScope {

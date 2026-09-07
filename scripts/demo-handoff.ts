@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { createRuntimePolicy } from "../src/artifact/sample-capability.js";
+import { runtimePolicyFor } from "../src/policy/runtime-policy.js";
 import { capabilitySchema } from "../src/contracts/capability.js";
 import { FileEvidenceSink } from "../src/evidence/file-sink.js";
 import { HandoffCoordinator } from "../src/handoff/coordinator.js";
@@ -21,11 +21,11 @@ const handoff = new HandoffCoordinator(async (request, coordinator) => {
 });
 
 try {
-  const result = await new DeterministicExecutor(capability, surface, createRuntimePolicy(capability)).run({
-    "member-number": "M-30077",
+  const result = await new DeterministicExecutor(capability, surface, runtimePolicyFor(capability)).run({
+    "member-id": "M-30077",
     "from-account": "checking",
     "to-account": "savings",
-    "transfer-amount": 80,
+    amount: 80,
   }, { runId, evidence, handoff });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   if (result.status !== "success") process.exitCode = 2;

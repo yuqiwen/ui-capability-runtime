@@ -1,5 +1,4 @@
-import { capabilitySchema, type Capability } from "../contracts/capability.js";
-import type { RuntimePolicy } from "../contracts/policy.js";
+import { capabilitySchema, type Capability } from "../../src/contracts/capability.js";
 
 // Test-only hand-authored fixture for replay-engine development. Production CLI
 // commands never import this file; genuine artifacts are emitted by CapabilityCompiler.
@@ -119,6 +118,7 @@ export function createSampleCapability(entryPoint = "http://127.0.0.1:4310/ops")
       allowedActionTypes: ["navigate", "click", "type", "select", "wait"],
       maximumAutomatedRisk: "sensitive",
       allowedRoutePatterns: ["^/ops(?:/|$)"],
+      blockedTargetTextPatterns: ["Submit Transfer", "Delete", "Close Account"],
     },
     steps: [
       { id: "open-application", description: "Open the approved operations entry point", action: { type: "navigate", url: { kind: "literal", value: entryPoint } }, preconditions: [], postconditions: [{ type: "page_contains", value: { kind: "literal", value: "Member Search" } }], timeoutMs: 10_000, retry: { maxAttempts: 2, backoffMs: 100, retryOn: ["timeout", "transient_navigation"] }, risk: "safe" },
@@ -141,16 +141,4 @@ export function createSampleCapability(entryPoint = "http://127.0.0.1:4310/ops")
       compiler: "capability-compiler-v1",
     },
   });
-}
-
-export function createRuntimePolicy(capability: Capability): RuntimePolicy {
-  return {
-    id: `${capability.id}-runtime-policy`,
-    allowedOrigins: capability.target.allowedOrigins,
-    allowedRoutePatterns: capability.policy.allowedRoutePatterns,
-    allowedActionTypes: capability.policy.allowedActionTypes,
-    maximumAutomatedRisk: capability.policy.maximumAutomatedRisk,
-    redactInputNames: capability.contract.inputs.filter((input) => input.sensitive).map((input) => input.name),
-    blockedTargetTextPatterns: ["Submit Transfer", "Delete", "Close Account"],
-  };
 }

@@ -32,3 +32,11 @@ export class PolicyEngine {
     return { allowed: true, code: "ALLOW", reason: "action is permitted" };
   }
 }
+
+export function classifyActionRisk(action: Action, blockedTargetTextPatterns: string[]): CapabilityStep["risk"] {
+  if ("target" in action && blockedTargetTextPatterns.some((pattern) => new RegExp(pattern, "i").test(action.target.description))) {
+    return "irreversible";
+  }
+  if (action.type === "type" || action.type === "select") return "sensitive";
+  return "safe";
+}

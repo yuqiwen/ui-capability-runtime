@@ -6,8 +6,8 @@ import type { RunResult } from "../contracts/result.js";
 import type { RuntimePolicy } from "../contracts/policy.js";
 import type { EvidenceSink } from "../evidence/events.js";
 import { MemoryEvidenceSink } from "../evidence/events.js";
-import { PolicyEngine } from "../policy/policy-engine.js";
-import type { Surface } from "../surface/surface.js";
+import { classifyActionRisk, PolicyEngine } from "../policy/policy-engine.js";
+import type { Observation, Surface } from "../surface/surface.js";
 import { evaluateValue, SurfaceFailure } from "../surface/surface.js";
 import { validateInputs } from "./input-validation.js";
 import type { HandoffCoordinator } from "../handoff/coordinator.js";
@@ -16,6 +16,7 @@ export interface ReplayOptions {
   runId?: string;
   evidence?: EvidenceSink;
   handoff?: HandoffCoordinator;
+  onProgress?: (message: string) => void;
 }
 
 export class DeterministicExecutor {
@@ -33,11 +34,19 @@ export class DeterministicExecutor {
       return { status: "failure", runId, category: "invalid_input", expected: "inputs matching the capability contract", observed: inputErrors.join("; "), retryable: false, evidence: evidence.references() };
     }
     const policy = new PolicyEngine(this.runtimePolicy);
+    let fingerprintVerified = false;
     await evidence.append({ timestamp: new Date().toISOString(), runId, type: "run_started", data: { capabilityId: this.capability.id, revision: this.capability.revision } });
 
     try {
-      for (const step of this.capability.steps) {
+      for (const [stepIndex, step] of this.capability.steps.entries()) {
+        options.onProgress?.(`Step ${stepIndex + 1}/${this.capability.steps.length}: ${step.description}`);
         await evidence.append({ timestamp: new Date().toISOString(), runId, type: "step_started", stepId: step.id, data: { description: step.description } });
+        if (!fingerprintVerified && step.action.type !== "navigate") {
+          const observation = await this.surface.observe();
+          const mismatch = this.fingerprintMismatch(observation);
+          if (mismatch) return await this.failure(runId, evidence, "target_mismatch", step.id, "the saved application fingerprint", mismatch, false);
+          fingerprintVerified = true;
+        }
         if (!(await this.allConditions(step.preconditions, inputs, step.timeoutMs))) {
           return await this.failure(runId, evidence, "checkpoint_failed", step.id, "all step preconditions to hold", "one or more preconditions were false", false);
         }
@@ -66,6 +75,15 @@ export class DeterministicExecutor {
           return await this.failure(runId, evidence, failure.category, step.id, `action ${step.action.type} to complete`, failure.message, failure.retryable);
         }
 
+        if (!fingerprintVerified && step.action.type === "navigate") {
+          const observation = await this.surface.observe();
+          const mismatch = this.fingerprintMismatch(observation);
+          if (mismatch) return await this.failure(runId, evidence, "target_mismatch", step.id, "the saved application fingerprint", mismatch, false);
+          fingerprintVerified = true;
+          options.onProgress?.("Target fingerprint verified");
+          await evidence.append({ timestamp: new Date().toISOString(), runId, type: "condition_checked", stepId: step.id, data: { condition: "target_fingerprint", matched: true } });
+        }
+
         const handled = await this.handleRuntimeStates(runId, step.id, inputs, evidence, policy, options.handoff);
         if (handled) return handled;
         if (!(await this.allConditions(step.postconditions, inputs, step.timeoutMs))) {
@@ -92,6 +110,18 @@ export class DeterministicExecutor {
     }
   }
 
+  private fingerprintMismatch(observation: Observation): string | undefined {
+    const fingerprint = this.capability.target.fingerprint;
+    const titleMatches = new RegExp(fingerprint.titlePattern).test(observation.title);
+    const missingText = fingerprint.requiredText.filter((text) => !observation.visibleText.includes(text));
+    if (titleMatches && missingText.length === 0) return undefined;
+    const reasons = [
+      ...(titleMatches ? [] : [`title ${JSON.stringify(observation.title)} does not match ${JSON.stringify(fingerprint.titlePattern)}`]),
+      ...(missingText.length ? [`missing required text: ${missingText.join(", ")}`] : []),
+    ];
+    return reasons.join("; ");
+  }
+
   private async handleRuntimeStates(runId: string, stepId: string, inputs: Record<string, JsonPrimitive>, evidence: EvidenceSink, policy: PolicyEngine, handoff?: HandoffCoordinator): Promise<RunResult | undefined> {
     for (const outcome of this.capability.contract.businessOutcomes) {
       if (await this.allConditions(outcome.when, inputs, 2_000)) {
@@ -107,7 +137,7 @@ export class DeterministicExecutor {
         let actionsSucceeded = true;
         for (const action of recovery.actions) {
           const observation = await this.surface.observe();
-          const decision = policy.evaluate(action, this.riskFor(action), this.policyUrl(action, inputs, this.applicationUrl(observation)));
+          const decision = policy.evaluate(action, classifyActionRisk(action, this.runtimePolicy.blockedTargetTextPatterns), this.policyUrl(action, inputs, this.applicationUrl(observation)));
           if (!decision.allowed) return await this.failure(runId, evidence, "policy_blocked", stepId, "policy to allow recovery action", decision.reason, false);
           try {
             await this.surface.perform(action, inputs, 10_000);
@@ -164,12 +194,6 @@ export class DeterministicExecutor {
 
   private policyUrl(action: Action, inputs: Record<string, JsonPrimitive>, currentUrl: string): string {
     return action.type === "navigate" ? String(evaluateValue(action.url, inputs)) : currentUrl;
-  }
-
-  private riskFor(action: Action): "safe" | "sensitive" | "irreversible" {
-    if ("target" in action && /submit|delete|close account|approve transaction/i.test(action.target.description)) return "irreversible";
-    if (action.type === "type" || action.type === "select") return "sensitive";
-    return "safe";
   }
 
   private async failure(runId: string, evidence: EvidenceSink, category: Extract<RunResult, { status: "failure" }>["category"] | SurfaceFailure["category"], stepId: string | undefined, expected: string, observed: string, retryable: boolean): Promise<RunResult> {

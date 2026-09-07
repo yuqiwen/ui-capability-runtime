@@ -1,0 +1,21 @@
+{"timestamp":"2026-09-07T02:42:21.469Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"run_started","data":{"capabilityId":"prepare-internal-transfer-to-review","revision":1}}
+{"timestamp":"2026-09-07T02:42:21.472Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"step_started","stepId":"open-application","data":{"description":"Open the approved target entry point"}}
+{"timestamp":"2026-09-07T02:42:21.653Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"action_completed","stepId":"open-application","data":{"actionType":"navigate","attempt":1}}
+{"timestamp":"2026-09-07T02:42:21.799Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"condition_checked","stepId":"open-application","data":{"condition":"target_fingerprint","matched":true}}
+{"timestamp":"2026-09-07T02:42:22.015Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"step_started","stepId":"step-01","data":{"description":"Enter the member number."}}
+{"timestamp":"2026-09-07T02:42:22.084Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"action_completed","stepId":"step-01","data":{"actionType":"type","attempt":1}}
+{"timestamp":"2026-09-07T02:42:22.337Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"step_started","stepId":"step-02","data":{"description":"Search for the member."}}
+{"timestamp":"2026-09-07T02:42:22.450Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"action_completed","stepId":"step-02","data":{"actionType":"click","attempt":1}}
+{"timestamp":"2026-09-07T02:42:22.730Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"step_started","stepId":"step-03","data":{"description":"Open the internal transfer preparation form."}}
+{"timestamp":"2026-09-07T02:42:22.829Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"action_completed","stepId":"step-03","data":{"actionType":"click","attempt":1}}
+{"timestamp":"2026-09-07T02:42:23.128Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"step_started","stepId":"step-04","data":{"description":"Select the source account."}}
+{"timestamp":"2026-09-07T02:42:23.188Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"action_completed","stepId":"step-04","data":{"actionType":"select","attempt":1}}
+{"timestamp":"2026-09-07T02:42:23.403Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"step_started","stepId":"step-05","data":{"description":"Select the destination account."}}
+{"timestamp":"2026-09-07T02:42:23.482Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"action_completed","stepId":"step-05","data":{"actionType":"select","attempt":1}}
+{"timestamp":"2026-09-07T02:42:23.683Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"step_started","stepId":"step-06","data":{"description":"Enter the transfer amount."}}
+{"timestamp":"2026-09-07T02:42:23.744Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"action_completed","stepId":"step-06","data":{"actionType":"type","attempt":1}}
+{"timestamp":"2026-09-07T02:42:23.985Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"step_started","stepId":"step-07","data":{"description":"Continue to the transfer review page and stop without submitting."}}
+{"timestamp":"2026-09-07T02:42:24.105Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"action_completed","stepId":"step-07","data":{"actionType":"click","attempt":1}}
+{"timestamp":"2026-09-07T02:42:24.286Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"recovery_started","stepId":"step-07","data":{"code":"TRANSIENT_VALIDATION_DELAY"}}
+{"timestamp":"2026-09-07T02:42:24.460Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"recovery_completed","stepId":"step-07","data":{"code":"TRANSIENT_VALIDATION_DELAY","attempt":1}}
+{"timestamp":"2026-09-07T02:42:24.652Z","runId":"replay-9cf5b705-06ce-4529-a86b-2e0834c37b5e","type":"run_completed","data":{"status":"success"}}

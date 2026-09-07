@@ -9,7 +9,10 @@ describe("OpenAI discovery response envelope", () => {
       additionalProperties: false,
       required: ["status", "summary", "actionType", "elementId", "value", "outputs", "reason"],
     });
-    expect((decisionJsonSchema.schema as any).properties.outputs.items.properties.name.pattern)
+    const schema = decisionJsonSchema.schema as {
+      properties: { outputs: { items: { properties: { name: { pattern: string } } } } };
+    };
+    expect(schema.properties.outputs.items.properties.name.pattern)
       .toBe("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$");
   });
 
