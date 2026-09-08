@@ -109,6 +109,12 @@ npm run replay -- \
   --headed --slow-mo 1000 --keep-open
 ```
 
+When invoking `npm.cmd` from Windows PowerShell, escape the JSON quotes so they survive the `cmd.exe` argument boundary:
+
+```powershell
+npm.cmd run replay -- --artifact evidence/prepare-internal-transfer.v1.json --args '{\"member-id\":\"M-20081\",\"from-account\":\"checking\",\"to-account\":\"savings\",\"amount\":75}' --headed --slow-mo 1000 --keep-open
+```
+
 Replay is deterministic and does not call a model. Its structured result is one of:
 
 | Status | Meaning |
