@@ -98,7 +98,13 @@ export class CapabilityCompiler {
       };
     });
     const successCheckpoint: Condition[] = outputs.slice(0, 2).map((output) => ({ type: "visible", target: output.extract.target }));
-    const finalCheckpointText = [...proposal.steps].reverse().find((step) => step.checkpointText)?.checkpointText;
+    // A checkpoint can remain true immediately after an intermediate step but
+    // disappear before the workflow finishes. Only promote text that is still
+    // present in the final observation into the capability-wide checkpoint.
+    const finalCheckpointText = [...proposal.steps]
+      .reverse()
+      .map((step) => step.checkpointText)
+      .find((checkpointText): checkpointText is string => Boolean(checkpointText && discovery.finalObservation.visibleText.includes(checkpointText)));
     if (finalCheckpointText) successCheckpoint.unshift({ type: "page_contains", value: { kind: "literal", value: finalCheckpointText } });
 
     return capabilitySchema.parse({

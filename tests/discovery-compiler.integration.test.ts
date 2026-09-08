@@ -71,6 +71,16 @@ class ScriptedDiscoveryModel implements DiscoveryModel {
   }
 }
 
+class StaleCheckpointCompilationModel extends ScriptedDiscoveryModel {
+  override async proposeCompilation(context: CompilationContext): Promise<CompilationProposal> {
+    const proposal = await super.proposeCompilation(context);
+    return {
+      ...proposal,
+      steps: proposal.steps.map((step) => step.traceIndex === 6 ? { ...step, checkpointText: null } : step),
+    };
+  }
+}
+
 let server: Server;
 let entryPoint: string;
 let surface: BrowserSurface;
@@ -123,5 +133,33 @@ describe("goal-only discovery and capability compilation", () => {
     expect(capability.discovery.goal).toContain("{{member-id}}");
     expect(capability.successCheckpoint.length).toBeGreaterThanOrEqual(2);
     expect(capability.discovery.evidenceLog).toBe("evidence/runs/test-discovery-compiler/run.jsonl");
+  }, 30_000);
+
+  it("does not promote an intermediate-page checkpoint into the final success condition", async () => {
+    const model = new StaleCheckpointCompilationModel();
+    const profile = createNorthstarProfile(entryPoint);
+    const policy: RuntimePolicy = {
+      id: "northstar-discovery-policy",
+      allowedOrigins: profile.allowedOrigins,
+      allowedRoutePatterns: profile.allowedRoutePatterns,
+      allowedActionTypes: profile.allowedActionTypes,
+      maximumAutomatedRisk: profile.maximumAutomatedRisk,
+      redactInputNames: ["member-id", "amount"],
+      blockedTargetTextPatterns: ["Submit Transfer"],
+    };
+    const discovery = await new DiscoveryAgent(model, surface, policy).run(
+      "Prepare a $125.50 internal transfer for member M-10042 from checking to savings and stop at the review page.",
+      entryPoint,
+      { runId: "test-stale-final-checkpoint" },
+    );
+    expect(discovery.status).toBe("success");
+    if (discovery.status !== "success") return;
+
+    const capability = await new CapabilityCompiler(model).compile(discovery, profile);
+    expect(capability.successCheckpoint).not.toContainEqual({
+      type: "page_contains",
+      value: { kind: "literal", value: "Internal Transfer Entry" },
+    });
+    expect(capability.successCheckpoint.every((condition) => condition.type === "visible")).toBe(true);
   }, 30_000);
 });
