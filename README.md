@@ -2,6 +2,8 @@
 
 **Use an LLM to discover a UI workflow once, compile it into a typed capability, then replay it deterministically with no model in the loop.**
 
+▶ **[Watch the end-to-end demo](docs/demo.mp4)** — goal-only discovery, typed capability compilation, and model-free replay with new inputs.
+
 This repository is a standalone Node.js/TypeScript runtime for operating applications that do not expose an API. It controls a browser through Playwright; the target website does not need to install or import anything.
 
 The included demo prepares a fictional internal transfer in a legacy-style web application. Automation may reach **Transfer Review**, but policy prevents it from submitting the transfer.
